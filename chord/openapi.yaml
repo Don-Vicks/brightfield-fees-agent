@@ -1,0 +1,138 @@
+openapi: 3.0.3
+info:
+  title: Brightfield Academy fees tools
+  version: 1.0.0
+  description: >
+    Tools for a WhatsApp fees assistant. Check a student's fee balance, create a
+    Paystack (test mode) payment link, and verify that a payment went through.
+    Every response includes agent_hint, which says what to tell the parent next.
+servers:
+  - url: https://YOUR-APP.vercel.app
+security:
+  - apiKey: []
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      in: header
+      name: x-api-key
+  schemas:
+    Error:
+      type: object
+      properties:
+        ok: { type: boolean, example: false }
+        error:
+          type: object
+          properties:
+            code: { type: string, example: AMOUNT_TOO_LOW }
+            message: { type: string }
+            agent_hint: { type: string }
+paths:
+  /api/balance:
+    get:
+      operationId: get_fee_balance
+      summary: Look up a student's fee balance for the current term
+      description: >
+        Returns total fees, amount paid, remaining balance, minimum installment,
+        due date and fee breakdown. Call when a parent asks what they owe, and
+        before creating a payment link.
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          description: Student ID, e.g. BFA-0142
+          schema: { type: string }
+      responses:
+        '200':
+          description: Fee account
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  student_id: { type: string }
+                  student_name: { type: string }
+                  total_fees: { type: integer, description: naira }
+                  amount_paid: { type: integer, description: naira }
+                  balance: { type: integer, description: naira }
+                  min_installment: { type: integer, description: naira }
+                  due_date: { type: string }
+                  summary: { type: string }
+                  agent_hint: { type: string }
+        '404':
+          description: Student not found
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /api/payment-link:
+    post:
+      operationId: create_payment_link
+      summary: Create a Paystack payment link for school fees
+      description: >
+        Amount in naira. Must be at least the minimum installment (100000) unless
+        it equals the full remaining balance, and cannot exceed the balance.
+        Send payment_url to the parent exactly as returned; keep reference for verify_payment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [student_id, amount]
+              properties:
+                student_id: { type: string, description: 'Student ID, e.g. BFA-0142' }
+                amount: { type: number, description: 'Amount in naira, e.g. 150000' }
+      responses:
+        '200':
+          description: Link created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  reference: { type: string }
+                  payment_url: { type: string }
+                  amount: { type: integer }
+                  balance_after_payment: { type: integer }
+                  agent_hint: { type: string }
+        '409':
+          description: Already fully paid
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '422':
+          description: Amount below minimum or above balance
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+        '502':
+          description: Paystack unavailable
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /api/verify:
+    post:
+      operationId: verify_payment
+      summary: Check whether a payment went through and get the new balance
+      description: >
+        Pass reference (preferred) or student_id. payment_status is success,
+        failed, not_completed or reversed. Only confirm to the parent on success.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reference: { type: string }
+                student_id: { type: string }
+      responses:
+        '200':
+          description: Verification result (including failed or unfinished payments)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  payment_status: { type: string, enum: [success, failed, not_completed, reversed, unknown] }
+                  amount: { type: integer }
+                  new_balance: { type: integer }
+                  agent_hint: { type: string }
+        '404':
+          description: Reference or payment not found
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
