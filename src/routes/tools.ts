@@ -12,6 +12,7 @@ import { SCHOOL, STUDENTS, Student, findStudent, normalizeStudentId } from '../l
 import { getAccount, missingStudentId, studentNotFound } from '../lib/fees';
 import { baseUrl, fail, naira, parseNaira, readInput } from '../lib/http';
 import { Txn, getProvider } from '../lib/paystack';
+import { receiptUrl } from '../lib/receipt';
 import { asyncHandler } from '../middleware/async';
 import { requireApiKey } from '../middleware/auth';
 
@@ -240,13 +241,15 @@ const verifyPayment = asyncHandler(async (req, res) => {
       paid_at: txn.paidAt,
       new_balance: account.balance,
       overpaid: account.overpaid,
+      receipt_url: receiptUrl(baseUrl(req), txn.reference),
       summary: `${naira(amount)} received for ${student.name}. New balance: ${naira(account.balance)}.`,
       agent_hint:
-        account.overpaid > 0
+        (account.overpaid > 0
           ? 'Confirm the payment and tell the parent the fees are fully paid. Say there is an overpayment and the bursar will contact them about it.'
           : account.balance === 0
             ? 'Confirm the payment and congratulate the parent: fees are now fully paid.'
-            : `Confirm the payment and tell the parent the new balance (${naira(account.balance)}).`,
+            : `Confirm the payment and tell the parent the new balance (${naira(account.balance)}).`) +
+        ' Send the receipt_url exactly as given (it is a PNG receipt image they can save).',
     });
   }
 

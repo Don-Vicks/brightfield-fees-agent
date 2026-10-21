@@ -143,6 +143,11 @@ async function main() {
   check('verify after paying -> success', verified.json?.payment_status === 'success', verified.json);
   check('new balance = start - 150,000', verified.json?.new_balance === startBalance - 150000, verified.json);
 
+  const receipt = await fetch(verified.json?.receipt_url ?? `${BASE}/api/receipt/missing.png`);
+  check('receipt_url returns a PNG image', receipt.status === 200 && receipt.headers.get('content-type') === 'image/png', receipt.status);
+  const forged = await fetch(`${BASE}/api/receipt/${encodeURIComponent(ref)}.png?sig=forged`);
+  check('receipt with a bad signature -> 404', forged.status === 404 || !KEY, forged.status);
+
   const again = await call('POST', '/api/verify', { reference: ref });
   check('verifying the same payment twice does not double-count', again.json?.new_balance === startBalance - 150000, again.json);
 

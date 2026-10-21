@@ -3,15 +3,41 @@
 //   GET /api/health             is the API up and configured? (also wakes it before a demo)
 //   GET /api/payment-complete   where Paystack sends the parent after checkout (callback_url)
 //   GET /api/mock-checkout      fake checkout page, MOCK MODE ONLY
+//   GET /api/receipt/:ref.png   receipt image for a successful payment (signed URL from verify_payment)
 
 import { Router } from 'express';
-import { SCHOOL, STUDENTS, findStudent } from '../lib/data';
-import { naira } from '../lib/http';
+import { SCHOOL, STUDENTS, findStudent, normalizeStudentId } from '../lib/data';
+import { getAccount } from '../lib/fees';
+import { fail, naira } from '../lib/http';
 import { esc, page } from '../lib/page';
 import { getProvider, mockSettle } from '../lib/paystack';
+import { renderReceipt, validSignature } from '../lib/receipt';
 import { asyncHandler } from '../middleware/async';
 
 export const pages = Router();
+
+pages.get(
+  '/receipt/:reference.png',
+  asyncHandler(async (req, res) => {
+    const { reference } = req.params;
+    const notFound = fail(404, 'RECEIPT_NOT_FOUND', 'No receipt for this link.', 'Offer to check the payment again with verify_payment.');
+    if (!validSignature(reference, req.query.sig)) throw notFound;
+
+    // Re-verify with Paystack: never draw a receipt for a payment that didn't succeed.
+    const provider = getProvider();
+    const txn = await provider.verify(reference);
+    const student = STUDENTS.find((s) => s.id === normalizeStudentId(txn?.studentId ?? ''));
+    if (!txn || txn.status !== 'success' || !student) throw notFound;
+
+    // Balance as it stood right after this payment, so the receipt doesn't change when later payments arrive.
+    const listed = await provider.listForStudent(student.id);
+    const upToThis = [txn, ...listed.filter((t) => t.reference !== txn.reference && (t.paidAt ?? '') <= (txn.paidAt ?? ''))];
+    const account = await getAccount(student, provider, upToThis);
+
+    const png = await renderReceipt({ student, txn, balanceAfter: account.balance });
+    res.set('cache-control', 'public, max-age=86400, immutable').type('png').send(png);
+  }),
+);
 
 pages.get('/health', (_req, res) => {
   const warnings: string[] = [];

@@ -49,7 +49,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 
 - **Method / URL:** `POST https://brightfield-fees-agent.vercel.app/api/verify`
 - **Description:**
-  > Check with Paystack whether a school-fee payment really went through, and get the student's new balance. Call this when the parent says they have paid. Pass the reference from create_payment_link; if you don't have it, pass student_id to check that student's most recent payment. payment_status is one of success, failed, not_completed, reversed. Only confirm a payment to the parent when it is success.
+  > Check with Paystack whether a school-fee payment really went through, and get the student's new balance. Call this when the parent says they have paid. Pass the reference from create_payment_link; if you don't have it, pass student_id to check that student's most recent payment. payment_status is one of success, failed, not_completed, reversed. Only confirm a payment to the parent when it is success. On success it also returns receipt_url, a PNG receipt image: send it to the parent exactly as given.
 - **Parameters (JSON body):**
 
 | Name | Type | Required | Description |

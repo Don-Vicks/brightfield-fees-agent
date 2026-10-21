@@ -15,16 +15,18 @@ Parent (WhatsApp) ──► Chord agent ──► this API ──► Paystack (t
 | --- | --- | --- |
 | `get_fee_balance` | `GET /api/balance?student_id=` | Total fees, paid, balance, minimum installment, breakdown |
 | `create_payment_link` | `POST /api/payment-link` `{student_id, amount}` | Checks installment rules, creates a Paystack checkout link |
-| `verify_payment` | `POST /api/verify` `{reference}` or `{student_id}` | Asks Paystack if the payment went through, returns the new balance |
+| `verify_payment` | `POST /api/verify` `{reference}` or `{student_id}` | Asks Paystack if the payment went through, returns the new balance and a `receipt_url` (PNG) on success |
 
 Every response includes `agent_hint`: one line telling the agent what the result means and what to say next. Errors share one shape, `{ ok:false, error:{ code, message, agent_hint } }`.
+
+**Testing:** see [TESTING.md](TESTING.md) for the full test plan: conversation scenarios, test cards, receipt checks, API calls and error codes.
 
 ## Run it locally (2 minutes, no keys needed)
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000/api/health
-npm run smoke      # in a second terminal: runs 32 scenarios end to end
+npm run smoke      # in a second terminal: runs 34 checks end to end
 ```
 
 With no Paystack key it runs in **mock mode**. Payment links open a fake checkout page where you click Pay or Decline. Copy `.env.example` to `.env` to configure it.
@@ -63,7 +65,7 @@ Test students: `BFA-0142` (₦250k owing), `BFA-0217` (₦520k owing, nothing pa
 - Student records are hard-coded in `src/lib/data.ts`. A real school would connect its records system.
 - Balance lookup pages through this term's Paystack transactions (up to 500). That's fine for a demo; at school scale you'd store payments via webhook.
 - Mock mode keeps payments in memory. Use it locally only, not on Vercel.
-- No refunds, receipts, multiple children per chat, or fee negotiation. Those go to the bursar.
+- No refunds, multiple children per chat, or fee negotiation. Those go to the bursar.
 
 ## Configuration
 
@@ -79,7 +81,8 @@ src/app.ts      Express app (also the Vercel entry): JSON parsing, logging, rout
 src/server.ts   local server (npm run dev)
 src/routes/     tools.ts (3 agent tools, API key required), pages.ts (health + browser pages)
 src/middleware/ API key auth, error formatting, async wrapper
-src/lib/        data, Paystack client + mock, fee logic, HTTP helpers
+src/assets/     fonts for the receipt image
+src/lib/        data, receipt image, Paystack client + mock, fee logic, HTTP helpers
 chord/          skill file, tool definitions, OpenAPI spec
 scripts/        end-to-end smoke test
 FIELD_NOTES.md  problems hit while building and deploying
