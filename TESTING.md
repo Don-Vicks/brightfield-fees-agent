@@ -21,7 +21,9 @@ How to test the agent end to end: in Chord, against the live API, and locally. E
 
 Fee breakdowns are in `src/lib/data.ts`. The agent gets them from `get_fee_balance`.
 
-> **Balances carry over.** Every successful test payment is a real Paystack test transaction, and the balance is recalculated from Paystack on every call. After you pay ₦150,000 for BFA-0142, it owes ₦100,000 from then on. Use another student for a fresh run.
+> **Balances carry over.** `src/lib/data.ts` holds only the starting records (fees and offline payments). Online payments live in Paystack, and the balance is recalculated from both on every call, so `data.ts` never changes. After you pay ₦150,000 for BFA-0142, it owes ₦100,000 from then on.
+>
+> **To reset all balances:** set `TERM_START` in Vercel to today's date (e.g. `2026-10-22`) and redeploy. Only Paystack payments on or after that date count, so earlier test payments are ignored.
 
 ### Paystack test cards
 
@@ -55,8 +57,8 @@ Run these in Chord's simulator or test chat, or on the connected WhatsApp number
 | A2 | `what does it cover?` | none, or `get_fee_balance` again | Lists the fee breakdown from the tool: tuition, development levy, books and materials, ICT and lab |
 | A3 | `let me pay 150k` | `create_payment_link` with `amount: 150000` | Sends a `https://checkout.paystack.com/…` link **exactly as returned**, says ₦150,000, and asks the parent to reply "paid" when done |
 | A4 | *(open the link, pay with the success card)* | — | Paystack redirects to our page, which shows **"Payment received"** |
-| A5 | `paid` | `verify_payment` with the reference from A3 | ✅ Confirms ₦150,000 received and **₦100,000 left**. Sends a **receipt link** (`…/api/receipt/….png?sig=…`) |
-| A6 | *(open the receipt link)* | — | A PNG receipt: Brightfield Academy, PAID, NGN 150,000, Tobi Adeyemi (BFA-0142), term, date, reference, balance remaining NGN 100,000 |
+| A5 | `paid` | `verify_payment` with the reference from A3 | ✅ Confirms ₦150,000 received and **₦100,000 left**. Sends a **receipt link** (`…/api/receipt/…?sig=…`) |
+| A6 | *(open the receipt link)* | — | A receipt page with a **Download receipt** button. The receipt image shows: Brightfield Academy, PAID, NGN 150,000, Tobi Adeyemi (BFA-0142), term, date, reference, balance remaining NGN 100,000 |
 | A7 | `how much is left now?` | `get_fee_balance` | **₦100,000**, which now counts the payment from A4 |
 
 **Pass:** every amount matches what the tools returned, the link is unchanged, the payment is confirmed only after `verify_payment` returns `success`, and the receipt opens.
@@ -112,16 +114,27 @@ The agent should say it's passing the case to the bursar, who will reach out Mon
 
 ---
 
-## 3. Receipt image
+## 3. Receipt
 
-After a successful `verify_payment`, the response includes `receipt_url`:
+After a successful `verify_payment`, the response includes two links:
 
-```
-https://brightfield-fees-agent.vercel.app/api/receipt/<reference>.png?sig=<signature>
-```
+| Field | What it is |
+| --- | --- |
+| `receipt_url` | `…/api/receipt/<reference>?sig=…`: a page with the receipt image and a **Download receipt** button. The agent sends this one |
+| `receipt_image_url` | `…/api/receipt/<reference>.png?sig=…`: the PNG itself. Add `&download=1` to make the browser save it |
 
 | Check | Expected |
 | --- | --- |
+| Open `receipt_url` | The receipt page: the image and a Download button |
+| Tap **Download receipt** | Saves `brightfield-receipt-<reference>.png` |
+| Paste `receipt_url` into a real WhatsApp chat | The link preview shows the receipt image (from the page's `og:image` tags). Chord's test chat may not render previews |
+| Change one character of `sig` | 404 `RECEIPT_NOT_FOUND`. Receipt URLs can't be guessed |
+| A receipt for an unpaid or failed reference | 404. The server re-checks with Paystack before showing a receipt |
+| Open an old receipt after a later payment | "Balance remaining" still shows the balance **right after that payment**, not today's balance |
+
+Whether the agent can send the PNG as a real WhatsApp **image message** (not a link) depends on Chord. Note what you find in `FIELD_NOTES.md`.
+
+--- | --- |
 | Open the `receipt_url` | 200, a PNG receipt (1000×890) |
 | Change one character of `sig` | 404 `RECEIPT_NOT_FOUND`. Receipt URLs can't be guessed |
 | A receipt for an unpaid or failed reference | 404. The server re-checks with Paystack before drawing a receipt |
@@ -174,7 +187,7 @@ Every response has `ok` and an `agent_hint`. Errors look like `{ "ok": false, "e
 | `PAYMENT_PROVIDER_UNAVAILABLE` | 502 | Paystack is down or timed out |
 | `CONFIG_ERROR` / `INTERNAL_ERROR` | 500 | Our side is broken: the agent should hand over to the bursar |
 
-### Automated smoke test (34 checks)
+### Automated smoke test (35 checks)
 
 ```bash
 # Against the live API: pauses at each payment link so you can pay with a test card

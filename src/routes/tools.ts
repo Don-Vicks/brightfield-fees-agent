@@ -12,7 +12,7 @@ import { SCHOOL, STUDENTS, Student, findStudent, normalizeStudentId } from '../l
 import { getAccount, missingStudentId, studentNotFound } from '../lib/fees';
 import { baseUrl, fail, naira, parseNaira, readInput } from '../lib/http';
 import { Txn, getProvider } from '../lib/paystack';
-import { receiptUrl } from '../lib/receipt';
+import { receiptImageUrl, receiptUrl } from '../lib/receipt';
 import { asyncHandler } from '../middleware/async';
 import { requireApiKey } from '../middleware/auth';
 
@@ -242,6 +242,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
       new_balance: account.balance,
       overpaid: account.overpaid,
       receipt_url: receiptUrl(baseUrl(req), txn.reference),
+      receipt_image_url: receiptImageUrl(baseUrl(req), txn.reference),
       summary: `${naira(amount)} received for ${student.name}. New balance: ${naira(account.balance)}.`,
       agent_hint:
         (account.overpaid > 0
@@ -249,7 +250,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
           : account.balance === 0
             ? 'Confirm the payment and congratulate the parent: fees are now fully paid.'
             : `Confirm the payment and tell the parent the new balance (${naira(account.balance)}).`) +
-        ' Send the receipt_url exactly as given (it is a PNG receipt image they can save).',
+        ' Send the receipt_url exactly as given: it opens their receipt with a Download button. If you can send images, you can also send receipt_image_url (the PNG itself).',
     });
   }
 

@@ -15,7 +15,7 @@ Parent (WhatsApp) ──► Chord agent ──► this API ──► Paystack (t
 | --- | --- | --- |
 | `get_fee_balance` | `GET /api/balance?student_id=` | Total fees, paid, balance, minimum installment, breakdown |
 | `create_payment_link` | `POST /api/payment-link` `{student_id, amount}` | Checks installment rules, creates a Paystack checkout link |
-| `verify_payment` | `POST /api/verify` `{reference}` or `{student_id}` | Asks Paystack if the payment went through, returns the new balance and a `receipt_url` (PNG) on success |
+| `verify_payment` | `POST /api/verify` `{reference}` or `{student_id}` | Asks Paystack if the payment went through, returns the new balance and, on success, a receipt (page with Download button + PNG) |
 
 Every response includes `agent_hint`: one line telling the agent what the result means and what to say next. Errors share one shape, `{ ok:false, error:{ code, message, agent_hint } }`.
 
@@ -26,7 +26,7 @@ Every response includes `agent_hint`: one line telling the agent what the result
 ```bash
 npm install
 npm run dev        # http://localhost:3000/api/health
-npm run smoke      # in a second terminal: runs 34 checks end to end
+npm run smoke      # in a second terminal: runs 35 checks end to end
 ```
 
 With no Paystack key it runs in **mock mode**. Payment links open a fake checkout page where you click Pay or Decline. Copy `.env.example` to `.env` to configure it.

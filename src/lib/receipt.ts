@@ -1,6 +1,6 @@
 // Payment receipt image (PNG) for a verified Paystack payment.
 //
-// verify_payment returns a receipt_url only when payment_status is "success".
+// verify_payment returns a receipt_url (page) and receipt_image_url (PNG) only when payment_status is "success".
 // The URL is public, so the agent can send it on WhatsApp. It carries an HMAC
 // signature of the reference, which stops anyone from guessing receipt URLs.
 // The receipt route re-verifies with Paystack before drawing anything, so a
@@ -30,7 +30,13 @@ export function validSignature(reference: string, sig: unknown): boolean {
   return expected.length === given.length && timingSafeEqual(expected, given);
 }
 
+/** Receipt page: shows the image with a Download button, and gives WhatsApp an image link preview. */
 export function receiptUrl(base: string, reference: string): string {
+  return `${base}/api/receipt/${encodeURIComponent(reference)}?sig=${signReference(reference)}`;
+}
+
+/** The PNG itself. Add &download=1 to make browsers save it instead of showing it. */
+export function receiptImageUrl(base: string, reference: string): string {
   return `${base}/api/receipt/${encodeURIComponent(reference)}.png?sig=${signReference(reference)}`;
 }
 

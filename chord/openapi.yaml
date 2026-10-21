@@ -111,7 +111,8 @@ paths:
       description: >
         Pass reference (preferred) or student_id. payment_status is success,
         failed, not_completed or reversed. Only confirm to the parent on success.
-        On success, receipt_url is a PNG receipt image to send to the parent.
+        On success, receipt_url opens the parent's receipt (image + Download button);
+        receipt_image_url is the PNG itself.
       requestBody:
         required: true
         content:
@@ -133,7 +134,8 @@ paths:
                   payment_status: { type: string, enum: [success, failed, not_completed, reversed, unknown] }
                   amount: { type: integer }
                   new_balance: { type: integer }
-                  receipt_url: { type: string, description: 'PNG receipt image, only when payment_status is success' }
+                  receipt_url: { type: string, description: 'Receipt page with the image and a Download button. Only when payment_status is success' }
+                  receipt_image_url: { type: string, description: 'The receipt as a PNG image. Only when payment_status is success' }
                   agent_hint: { type: string }
         '404':
           description: Reference or payment not found

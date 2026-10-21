@@ -3,39 +3,77 @@
 //   GET /api/health             is the API up and configured? (also wakes it before a demo)
 //   GET /api/payment-complete   where Paystack sends the parent after checkout (callback_url)
 //   GET /api/mock-checkout      fake checkout page, MOCK MODE ONLY
-//   GET /api/receipt/:ref.png   receipt image for a successful payment (signed URL from verify_payment)
+//   GET /api/receipt/:ref       receipt page with Download button (signed URL from verify_payment)
+//   GET /api/receipt/:ref.png   the receipt image itself
 
 import { Router } from 'express';
 import { SCHOOL, STUDENTS, findStudent, normalizeStudentId } from '../lib/data';
 import { getAccount } from '../lib/fees';
-import { fail, naira } from '../lib/http';
+import { baseUrl, fail, naira } from '../lib/http';
 import { esc, page } from '../lib/page';
 import { getProvider, mockSettle } from '../lib/paystack';
-import { renderReceipt, validSignature } from '../lib/receipt';
+import { receiptImageUrl, renderReceipt, validSignature } from '../lib/receipt';
 import { asyncHandler } from '../middleware/async';
 
 export const pages = Router();
+
+// Loads everything a receipt needs, or throws 404. Re-verifies with Paystack so a
+// receipt is never shown for a payment that didn't succeed.
+async function loadReceipt(reference: string, sig: unknown) {
+  const notFound = fail(404, 'RECEIPT_NOT_FOUND', 'No receipt for this link.', 'Offer to check the payment again with verify_payment.');
+  if (!validSignature(reference, sig)) throw notFound;
+
+  const provider = getProvider();
+  const txn = await provider.verify(reference);
+  const student = STUDENTS.find((s) => s.id === normalizeStudentId(txn?.studentId ?? ''));
+  if (!txn || txn.status !== 'success' || !student) throw notFound;
+
+  // Balance as it stood right after this payment, so the receipt doesn't change when later payments arrive.
+  const listed = await provider.listForStudent(student.id);
+  const upToThis = [txn, ...listed.filter((t) => t.reference !== txn.reference && (t.paidAt ?? '') <= (txn.paidAt ?? ''))];
+  const account = await getAccount(student, provider, upToThis);
+  return { student, txn, balanceAfter: account.balance };
+}
 
 pages.get(
   '/receipt/:reference.png',
   asyncHandler(async (req, res) => {
     const { reference } = req.params;
-    const notFound = fail(404, 'RECEIPT_NOT_FOUND', 'No receipt for this link.', 'Offer to check the payment again with verify_payment.');
-    if (!validSignature(reference, req.query.sig)) throw notFound;
-
-    // Re-verify with Paystack: never draw a receipt for a payment that didn't succeed.
-    const provider = getProvider();
-    const txn = await provider.verify(reference);
-    const student = STUDENTS.find((s) => s.id === normalizeStudentId(txn?.studentId ?? ''));
-    if (!txn || txn.status !== 'success' || !student) throw notFound;
-
-    // Balance as it stood right after this payment, so the receipt doesn't change when later payments arrive.
-    const listed = await provider.listForStudent(student.id);
-    const upToThis = [txn, ...listed.filter((t) => t.reference !== txn.reference && (t.paidAt ?? '') <= (txn.paidAt ?? ''))];
-    const account = await getAccount(student, provider, upToThis);
-
-    const png = await renderReceipt({ student, txn, balanceAfter: account.balance });
+    const png = await renderReceipt(await loadReceipt(reference, req.query.sig));
+    if (req.query.download) res.attachment(`brightfield-receipt-${reference}.png`);
     res.set('cache-control', 'public, max-age=86400, immutable').type('png').send(png);
+  }),
+);
+
+// Page the parent opens from WhatsApp: the receipt image plus a Download button.
+// The og: tags make WhatsApp show the receipt image as the link preview.
+pages.get(
+  '/receipt/:reference',
+  asyncHandler(async (req, res) => {
+    const { reference } = req.params;
+    const { student, txn } = await loadReceipt(reference, req.query.sig);
+    const image = receiptImageUrl(baseUrl(req), reference);
+    const amount = naira(Math.round(txn.amountKobo / 100));
+    const title = `${SCHOOL.name} receipt: ${amount}`;
+    const head = [
+      `<meta property="og:title" content="${esc(title)}">`,
+      `<meta property="og:description" content="${esc(`School fees paid for ${student.name} (${student.id}). Ref ${reference}`)}">`,
+      `<meta property="og:image" content="${esc(image)}">`,
+      `<meta property="og:image:type" content="image/png">`,
+      `<meta property="og:image:width" content="1000"><meta property="og:image:height" content="890">`,
+      `<meta name="twitter:card" content="summary_large_image">`,
+    ].join('\n');
+
+    res.type('html').send(
+      page(
+        title,
+        `<p>${SCHOOL.name} · Payment receipt</p><h1 class="ok">${amount} received</h1>
+         <img class="receipt" src="${esc(image)}" alt="Receipt for ${esc(amount)} paid for ${esc(student.name)}, reference ${esc(reference)}">
+         <div class="btns"><a class="btn primary" href="${esc(image)}&amp;download=1" download="brightfield-receipt-${esc(reference)}.png">Download receipt</a></div>
+         <small>Keep this for your records. On a phone you can also press and hold the image to save it.</small>`,
+        head,
+      ).replace('<main>', '<main class="wide">'),
+    );
   }),
 );
 

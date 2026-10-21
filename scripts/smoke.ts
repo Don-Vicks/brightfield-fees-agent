@@ -143,8 +143,11 @@ async function main() {
   check('verify after paying -> success', verified.json?.payment_status === 'success', verified.json);
   check('new balance = start - 150,000', verified.json?.new_balance === startBalance - 150000, verified.json);
 
-  const receipt = await fetch(verified.json?.receipt_url ?? `${BASE}/api/receipt/missing.png`);
-  check('receipt_url returns a PNG image', receipt.status === 200 && receipt.headers.get('content-type') === 'image/png', receipt.status);
+  const receiptPage = await fetch(verified.json?.receipt_url ?? `${BASE}/api/receipt/missing`);
+  const pageHtml = await receiptPage.text();
+  check('receipt_url opens a page with the image and og:image preview', receiptPage.status === 200 && pageHtml.includes('og:image') && pageHtml.includes('Download receipt'), receiptPage.status);
+  const receipt = await fetch(verified.json?.receipt_image_url ?? `${BASE}/api/receipt/missing.png`);
+  check('receipt_image_url returns a PNG image', receipt.status === 200 && receipt.headers.get('content-type') === 'image/png', receipt.status);
   const forged = await fetch(`${BASE}/api/receipt/${encodeURIComponent(ref)}.png?sig=forged`);
   check('receipt with a bad signature -> 404', forged.status === 404 || !KEY, forged.status);
 
