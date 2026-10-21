@@ -26,6 +26,18 @@ Log problems the moment they happen: paste the exact error, take a screenshot, n
 
 ---
 
+### Problem 3: OpenAPI import drops parameter descriptions and leaves the timeout empty
+
+**What happened:** The imported tools had body schemas with only the types (`{"reference":{"type":"string"},...}`). The parameter descriptions from the spec, which tell the AI what each field means (e.g. "amount in naira, not kobo"), were missing. The timeout field was empty too.
+
+**How I found the cause:** Opened Edit API connection on `verify_payment` and compared the body schema with `chord/openapi.yaml`.
+
+**Fix / workaround:** Pasted body schemas with descriptions into each tool by hand and set the timeout to 20000 ms (Paystack and a cold-starting serverless API can be slow).
+
+**What Chord should change:** Keep `description`, `required` and `example` from the OpenAPI spec when importing, and show the default timeout in the field instead of leaving it blank.
+
+---
+
 ### What worked well
 
 - **Import OpenAPI** created all three tools from `chord/openapi.yaml` in one step, with the right method and URL for each and the `x-api-key` header auth.
@@ -42,3 +54,6 @@ Log problems the moment they happen: paste the exact error, take a screenshot, n
 | 2026-10-21 | Imported `chord/openapi.yaml` via Custom tools (API) → Import OpenAPI; 3 tools created | — | Done |
 | 2026-10-21 | Test `create_payment_link` with empty body → 400 | `MISSING_STUDENT_ID` (screenshot) | Workaround (Problem 2) |
 | 2026-10-21 | All three tools pass with hand-typed bodies/params | 200s | Done |
+| 2026-10-21 | First full test chat (BFA-0142): balance, link, pay, verify all correct | screenshot | Done |
+| 2026-10-21 | Reset balances with `TERM_START` timestamp; updated skill + verify_payment for receipts | — | Done |
+| 2026-10-21 | Import lost parameter descriptions and timeout; fixed by hand | — | Workaround (Problem 3) |
