@@ -1,6 +1,6 @@
 # Chord custom tools: what to enter
 
-Three tools, all calling your deployed API. Replace `YOUR-APP` with your Vercel URL and `YOUR_TOOL_API_KEY` with the key you set in Vercel.
+Three tools, all calling the deployed API at https://brightfield-fees-agent.vercel.app. Replace `YOUR_TOOL_API_KEY` with the `TOOL_API_KEY` set in Vercel (kept out of this repo on purpose).
 
 I haven't seen Chord's tool form, so the field names below are generic. Map them onto whatever Chord asks for. Anything in Chord that doesn't map cleanly is a field note.
 
@@ -18,7 +18,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 
 ## 1. get_fee_balance
 
-- **Method / URL:** `GET https://YOUR-APP.vercel.app/api/balance`
+- **Method / URL:** `GET https://brightfield-fees-agent.vercel.app/api/balance`
 - **Description:**
   > Look up a Brightfield Academy student's school-fee account for the current term: total fees, amount paid, remaining balance, minimum installment, due date and fee breakdown. Call this whenever a parent asks what they owe or what they've paid, and before creating a payment link. Requires the student ID (format BFA-0142).
 - **Parameters:**
@@ -33,7 +33,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 
 ## 2. create_payment_link
 
-- **Method / URL:** `POST https://YOUR-APP.vercel.app/api/payment-link`
+- **Method / URL:** `POST https://brightfield-fees-agent.vercel.app/api/payment-link`
 - **Description:**
   > Create a secure Paystack payment link for a Brightfield Academy student's school fees. Use it after the parent says how much they want to pay. The amount must be at least the minimum installment (₦100,000) unless it equals the full remaining balance, and it can't exceed the balance. Returns payment_url (send it to the parent exactly as given) and reference (keep it for verify_payment).
 - **Parameters (JSON body):**
@@ -47,7 +47,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 
 ## 3. verify_payment
 
-- **Method / URL:** `POST https://YOUR-APP.vercel.app/api/verify`
+- **Method / URL:** `POST https://brightfield-fees-agent.vercel.app/api/verify`
 - **Description:**
   > Check with Paystack whether a school-fee payment really went through, and get the student's new balance. Call this when the parent says they have paid. Pass the reference from create_payment_link; if you don't have it, pass student_id to check that student's most recent payment. payment_status is one of success, failed, not_completed, reversed. Only confirm a payment to the parent when it is success.
 - **Parameters (JSON body):**

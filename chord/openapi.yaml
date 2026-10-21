@@ -7,7 +7,7 @@ info:
     Paystack (test mode) payment link, and verify that a payment went through.
     Every response includes agent_hint, which says what to tell the parent next.
 servers:
-  - url: https://YOUR-APP.vercel.app
+  - url: https://brightfield-fees-agent.vercel.app
 security:
   - apiKey: []
 components:
