@@ -26,6 +26,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 | Name | Type | Required | Description |
 | --- | --- | --- | --- |
 | student_id | string | yes | The child's student ID, e.g. BFA-0142 |
+| parent_phone | string | no** | The parent's WhatsApp number (the sender of this chat), e.g. +2348035550142 |
 
 - **Sends as:** query string (`?student_id=BFA-0142`). POST with a JSON body also works.
 
@@ -42,6 +43,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 | --- | --- | --- | --- |
 | student_id | string | yes | The child's student ID, e.g. BFA-0142 |
 | amount | number | yes | Amount in naira (not kobo), e.g. 150000 |
+| parent_phone | string | no** | The parent's WhatsApp number (the sender of this chat), e.g. +2348035550142 |
 
 ---
 
@@ -56,8 +58,19 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 | --- | --- | --- | --- |
 | reference | string | no* | The reference returned by create_payment_link |
 | student_id | string | no* | Use when the reference is not available |
+| parent_phone | string | no** | The parent's WhatsApp number (the sender of this chat), e.g. +2348035550142 |
 
 \* Send at least one of the two.
+
+---
+
+## parent_phone: who may see a child's fees
+
+\*\* Student IDs are sequential, so knowing an ID must not be enough to see a child's fees. Each student record has the parent's WhatsApp number on file. If Chord can put the **sender's WhatsApp number** into tool calls (a variable such as `{{contact.phone}}` in a query parameter or body field), map it to `parent_phone` on all three tools. The API then only answers for that parent's own children (`PARENT_NOT_VERIFIED` otherwise).
+
+Once that works, set `REQUIRE_PARENT_PHONE=true` in Vercel so calls without a number are refused too. Add your own test number with `DEMO_PARENT_PHONES=+234...` so you can test with every student.
+
+If Chord can't pass the sender's number, leave `REQUIRE_PARENT_PHONE` off. It's a known gap: see the README.
 
 ---
 

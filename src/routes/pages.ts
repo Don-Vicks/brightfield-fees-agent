@@ -8,6 +8,7 @@
 
 import { Router } from 'express';
 import { SCHOOL, STUDENTS, findStudent, normalizeStudentId } from '../lib/data';
+import { parentCheckRequired } from '../lib/access';
 import { getAccount } from '../lib/fees';
 import { baseUrl, fail, naira } from '../lib/http';
 import { esc, page } from '../lib/page';
@@ -87,6 +88,7 @@ pages.get('/health', (_req, res) => {
   }
   if (!process.env.TOOL_API_KEY) warnings.push('TOOL_API_KEY is not set: tool endpoints are open to anyone.');
   if (mode === 'mock') warnings.push('Running in MOCK mode (no PAYSTACK_SECRET_KEY). Payments are fake and reset on restart.');
+  if (!parentCheckRequired()) warnings.push('REQUIRE_PARENT_PHONE is off: anyone with a student ID can see that child\'s fees.');
   if (process.env.ERRORS_AS_200 === 'true') warnings.push('ERRORS_AS_200 is on: errors return HTTP 200 with ok:false.');
 
   res.json({
@@ -96,6 +98,7 @@ pages.get('/health', (_req, res) => {
     term: SCHOOL.term,
     payments_mode: mode,
     auth: process.env.TOOL_API_KEY ? 'required' : 'disabled',
+    parent_phone_check: parentCheckRequired() ? 'required' : 'optional',
     students_loaded: STUDENTS.length,
     warnings,
     time: new Date().toISOString(),

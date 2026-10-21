@@ -105,6 +105,16 @@ async function main() {
   const badJson = await call('POST', '/api/balance', undefined, { raw: '{not json' });
   check('broken JSON body -> INVALID_JSON', errCode(badJson) === 'INVALID_JSON', badJson.json);
 
+  // ---------------------------------------------------------------- parent phone check
+  console.log('\nParent phone check');
+  const ownParent = await call('POST', '/api/balance', { student_id: 'BFA-0142', parent_phone: '0803 555 0142' });
+  check("parent's own number (local format) -> allowed", ownParent.status === 200, ownParent.json);
+  const otherParent = await call('POST', '/api/balance', { student_id: 'BFA-0142', parent_phone: '+2348035550217' });
+  check("another parent's number -> PARENT_NOT_VERIFIED (403)", otherParent.status === 403 && errCode(otherParent) === 'PARENT_NOT_VERIFIED', otherParent.json);
+  check('refusal leaks no fee details', otherParent.json?.balance === undefined && !JSON.stringify(otherParent.json).includes('Tobi'));
+  const otherLink = await call('POST', '/api/payment-link', { student_id: 'BFA-0142', amount: 100000, parent_phone: '+2348035550217' });
+  check("another parent can't create a payment link", errCode(otherLink) === 'PARENT_NOT_VERIFIED', otherLink.json);
+
   // ---------------------------------------------------------------- payment link validation
   console.log('\nPayment link rules');
   const low = await call('POST', '/api/payment-link', { student_id: 'BFA-0142', amount: 50000 });

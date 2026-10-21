@@ -40,7 +40,13 @@ export function readInput(req: Request): Record<string, unknown> {
   if (req.body && typeof req.body === 'object' && !Array.isArray(req.body)) Object.assign(input, req.body);
 
   // camelCase -> snake_case aliases
-  const aliases: Record<string, string> = { studentId: 'student_id', parentEmail: 'parent_email' };
+  const aliases: Record<string, string> = {
+    studentId: 'student_id',
+    parentEmail: 'parent_email',
+    parentPhone: 'parent_phone',
+    phone: 'parent_phone',
+    sender_phone: 'parent_phone',
+  };
   for (const [from, to] of Object.entries(aliases)) {
     if (input[from] !== undefined && input[to] === undefined) input[to] = input[from];
   }

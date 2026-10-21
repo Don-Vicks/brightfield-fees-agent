@@ -15,6 +15,7 @@ export interface Student {
   className: string;
   parentName: string;
   parentEmail: string; // made-up, used only as the Paystack customer email
+  parentPhone: string; // made-up WhatsApp number on file; only this number may ask about the child
   fees: FeeItem[];
   paidOffline: number; // naira already paid before / outside the agent
 }
@@ -42,6 +43,7 @@ export const STUDENTS: Student[] = [
     className: 'JSS 2',
     parentName: 'Mrs. Funke Adeyemi',
     parentEmail: 'parent.bfa0142@example.com',
+    parentPhone: '+2348035550142',
     fees: standard(350_000), // 450,000
     paidOffline: 200_000,
   },
@@ -51,6 +53,7 @@ export const STUDENTS: Student[] = [
     className: 'SS 1',
     parentName: 'Mr. Emeka Okafor',
     parentEmail: 'parent.bfa0217@example.com',
+    parentPhone: '+2348035550217',
     fees: standard(420_000), // 520,000
     paidOffline: 0,
   },
@@ -60,6 +63,7 @@ export const STUDENTS: Student[] = [
     className: 'Primary 5',
     parentName: 'Mrs. Hauwa Bello',
     parentEmail: 'parent.bfa0088@example.com',
+    parentPhone: '+2348035550088',
     fees: standard(280_000), // 380,000
     paidOffline: 380_000, // fully paid
   },
@@ -69,6 +73,7 @@ export const STUDENTS: Student[] = [
     className: 'JSS 1',
     parentName: 'Alhaji Ibrahim Musa',
     parentEmail: 'parent.bfa0305@example.com',
+    parentPhone: '+2348035550305',
     fees: standard(350_000), // 450,000
     paidOffline: 390_000, // balance 60,000: below the minimum installment
   },
@@ -78,6 +83,7 @@ export const STUDENTS: Student[] = [
     className: 'SS 3',
     parentName: 'Mrs. Adaeze Eze',
     parentEmail: 'parent.bfa0151@example.com',
+    parentPhone: '+2348035550151',
     fees: standard(460_000), // 560,000
     paidOffline: 280_000,
   },
@@ -97,4 +103,15 @@ export function normalizeStudentId(raw: unknown): string | null {
 export function findStudent(raw: unknown): Student | undefined {
   const id = normalizeStudentId(raw);
   return id ? STUDENTS.find((s) => s.id === id) : undefined;
+}
+
+/**
+ * Normalises a Nigerian phone number to 234XXXXXXXXXX.
+ * Accepts "+234 803 555 0142", "2348035550142", "08035550142", "whatsapp:+234...".
+ */
+export function normalizePhone(raw: unknown): string | null {
+  if (typeof raw !== 'string' && typeof raw !== 'number') return null;
+  let d = String(raw).replace(/\D/g, '');
+  if (d.startsWith('0') && d.length === 11) d = `234${d.slice(1)}`;
+  return /^234\d{10}$/.test(d) ? d : null;
 }

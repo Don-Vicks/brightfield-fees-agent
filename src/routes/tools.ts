@@ -13,16 +13,19 @@ import { getAccount, missingStudentId, studentNotFound } from '../lib/fees';
 import { baseUrl, fail, naira, parseNaira, readInput } from '../lib/http';
 import { Txn, getProvider } from '../lib/paystack';
 import { receiptImageUrl, receiptUrl } from '../lib/receipt';
+import { assertParent } from '../lib/access';
 import { asyncHandler } from '../middleware/async';
 import { requireApiKey } from '../middleware/auth';
 
 export const tools = Router();
 tools.use(requireApiKey);
 
-function requireStudent(raw: unknown): Student {
-  if (!raw) throw missingStudentId();
-  const student = findStudent(raw);
-  if (!student) throw studentNotFound(raw);
+/** Finds the student and checks the sender is that child's parent (see lib/access.ts). */
+function requireStudent(input: Record<string, unknown>): Student {
+  if (!input.student_id) throw missingStudentId();
+  const student = findStudent(input.student_id);
+  if (!student) throw studentNotFound(input.student_id);
+  assertParent(student, input.parent_phone);
   return student;
 }
 
@@ -31,7 +34,7 @@ function requireStudent(raw: unknown): Student {
 // What the student owes this term, worked out live from school records + Paystack.
 
 const getBalance = asyncHandler(async (req, res) => {
-  const student = requireStudent(readInput(req).student_id);
+  const student = requireStudent(readInput(req));
   const account = await getAccount(student, getProvider());
 
   res.json({
@@ -59,7 +62,7 @@ function makeReference(studentId: string): string {
 
 const createPaymentLink = asyncHandler(async (req, res) => {
   const input = readInput(req);
-  const student = requireStudent(input.student_id);
+  const student = requireStudent(input);
   const provider = getProvider();
   const account = await getAccount(student, provider);
 
@@ -179,7 +182,7 @@ async function findTxn(reference: string, requestedStudent: Student | undefined)
       throw fail(
         409,
         'REFERENCE_STUDENT_MISMATCH',
-        `Reference ${reference} belongs to ${txn.studentId ?? 'no student'}, not ${requestedStudent.id}.`,
+        `Reference ${reference} is not for ${requestedStudent.id}.`,
         'Do not confirm anything. Ask the parent to confirm which child the payment was for, then check again.',
       );
     }
@@ -204,6 +207,7 @@ const verifyPayment = asyncHandler(async (req, res) => {
   const reference = typeof input.reference === 'string' ? input.reference.trim() : '';
   const requestedStudent = input.student_id ? findStudent(input.student_id) : undefined;
   if (input.student_id && !requestedStudent) throw studentNotFound(input.student_id);
+  if (requestedStudent) assertParent(requestedStudent, input.parent_phone);
 
   if (!reference && !requestedStudent) {
     throw fail(
@@ -226,6 +230,8 @@ const verifyPayment = asyncHandler(async (req, res) => {
       'Do not confirm anything. Offer to pass it to the bursar to check.',
     );
   }
+  // Verifying by reference alone: the payment's student must be this parent's child too.
+  assertParent(student, input.parent_phone);
 
   const amount = Math.round(txn.amountKobo / 100);
   const base = { ok: true, reference: txn.reference, student_id: student.id, student_name: student.name, amount };
