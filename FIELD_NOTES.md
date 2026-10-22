@@ -80,4 +80,5 @@ Only our API key and standard HTTP headers, plus the parameters we defined. Noth
 | 2026-10-21 | Reset balances with `TERM_START` timestamp; updated skill + verify_payment for receipts | — | Done |
 | 2026-10-21 | Import lost parameter descriptions and timeout; fixed by hand | — | Workaround (Problem 3) |
 | 2026-10-22 08:01 UTC | Test chat tool calls carry no sender info; parent check can't be enforced | `phone_like=[none]` (Vercel logs) | Blocker (Problem 4) |
+| 2026-10-22 08:38 UTC | `hand_over_to_bursar` works end to end (`HO-MVJAGPDK-0d8d` logged). But in the same old chat the agent handed over *instead of* sending a clean ₦280,000 link for BFA-0151, and bolded the ID with `**`, which WhatsApp shows raw | screenshot + `[handover]` log | Skill fixed: keep helping after a handover; WhatsApp formatting |
 | 2026-10-22 08:01 UTC | Old chat after balance reset: agent trusted the tools over its memory and apologised for the mismatch | screenshot | Good behaviour; use fresh chats |
