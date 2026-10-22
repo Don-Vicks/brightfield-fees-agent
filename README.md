@@ -68,9 +68,9 @@ With no Paystack key it runs in **mock mode**. Payment links open a fake checkou
 
 - **Skill:** paste `chord/skill-brightfield-fees.md` into a new skill on the agent.
 - **Tools:** add the five tools as described in `chord/tools.md`, or import `chord/openapi.yaml` if Chord supports it.
-- Test in the WhatsApp simulator with student ID **BFA-0142** (balance ₦250,000).
+- Test in the WhatsApp simulator with student ID **BFA-0217** (balance ₦520,000).
 
-Test students: `BFA-0142` (₦250k owing), `BFA-0217` (₦520k owing, nothing paid), `BFA-0088` (fully paid), `BFA-0305` (₦60k left, below the minimum installment, so it must be paid in full), `BFA-0151` (₦280k owing).
+Test students, with their balances before any online payments (setting `TERM_START` to now resets them): `BFA-0142` (₦250k owing), `BFA-0217` (₦520k owing, nothing paid), `BFA-0088` (fully paid), `BFA-0305` (₦60k left, below the minimum installment, so it must be paid in full), `BFA-0151` (₦280k owing).
 
 ## Design decisions
 
