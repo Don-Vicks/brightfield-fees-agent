@@ -1,5 +1,10 @@
 # Brightfield Academy fees agent
 
+**Role:** Forward-deployed Engineering
+
+<!-- DRAFT: rewrite in your own words. Check the numbers are ones you can defend live. -->
+**Problem.** Private schools in Lagos run fee collection on WhatsApp: parents message the bursar to ask what they owe, pay by transfer in installments, then send a screenshot and wait for someone to confirm it and issue a receipt. At a 600-student school paying in about three installments a term, that's roughly 1,800 confirmations a term plus the balance questions, all handled by hand by one bursar, with mistakes and slow replies in the busiest weeks. This agent answers the balance, sends a Paystack link that enforces the school's installment rules, confirms payment with Paystack itself rather than a screenshot, and issues a receipt, so the bursar only sees the exceptions. I deliberately left out reminders (the agent can't message first), several children per chat, and anything involving discretion such as discounts or refunds, which go to the bursar.
+
 A WhatsApp agent, built on Chord, that lets parents at a (made-up) Lagos private school check their child's fee balance, pay all or part of it through Paystack, and get instant confirmation. No bursar is needed for routine fee questions.
 
 | | |
@@ -42,7 +47,7 @@ Every response includes `agent_hint`: one line telling the agent what the result
 ```bash
 npm install
 npm run dev        # http://localhost:3000/api/health
-npm run smoke      # in a second terminal: runs 44 checks end to end
+npm run smoke      # in a second terminal: runs 43 checks end to end (44 with TOOL_API_KEY set)
 ```
 
 With no Paystack key it runs in **mock mode**. Payment links open a fake checkout page where you click Pay or Decline. Copy `.env.example` to `.env` to configure it.
@@ -80,7 +85,7 @@ Test students: `BFA-0142` (₦250k owing), `BFA-0217` (₦520k owing, nothing pa
 ## Limits (deliberate, for a demo)
 
 - Student records are hard-coded in `src/lib/data.ts`. A real school would connect its records system.
-- Balance lookup pages through this term's Paystack transactions (up to 500). That's fine for a demo; at school scale you'd store payments via webhook.
+- Balance lookup pages through this term's Paystack transactions (up to 500; past that it refuses rather than show a wrong balance). That's fine for a demo; at school scale you'd store payments via webhook.
 - Mock mode keeps payments in memory. Use it locally only, not on Vercel.
 - **Until Chord passes the sender's WhatsApp number to tools, anyone who knows a student ID can see that child's fees.** The API side of the fix is built (`src/lib/access.ts`); this is a blocker before going live.
 - No refunds, multiple children per chat, or fee negotiation. Those go to the bursar.
@@ -101,7 +106,7 @@ See `.env.example`. Notable switches:
 ```
 src/app.ts      Express app (also the Vercel entry): JSON parsing, logging, routers, error handler
 src/server.ts   local server (npm run dev)
-src/routes/     tools.ts (3 agent tools, API key required), pages.ts (health + browser pages)
+src/routes/     tools.ts (5 agent tools, API key required), pages.ts (health + browser pages)
 src/middleware/ API key auth, error formatting, async wrapper
 src/assets/     fonts for the receipt image
 src/lib/        data, receipt image, Paystack client + mock, fee logic, HTTP helpers
@@ -112,7 +117,9 @@ FIELD_NOTES.md  problems hit while building and deploying
 
 ## How I used AI tools
 
-<!-- Write this yourself, honestly. Example:
-I used Claude to scaffold the tool API, the smoke test and a first draft of the skill.
-I reviewed every file, deployed and tested it against Paystack test mode myself,
-rewrote X, and set up the agent in Chord by hand. Field notes are from my own build. -->
+<!-- DRAFT: fill in the [brackets] and make it true. Every commit in this repo is co-authored by Claude, so don't undersell its part. -->
+I used Claude Code throughout, as a pair programmer. It wrote most of the code in this repo (the Express tool API, Paystack client, receipts, smoke test) and first drafts of the skill, OpenAPI spec and docs; every commit is marked co-authored.
+
+What I did: chose the problem and the rules the agent enforces; [decided X / pushed back on Y]; set up the teammate, skill and tools in Chord by hand; deployed to Vercel and configured Paystack test mode; ran the test chats and paid with test cards; and found the problems in the field notes by testing in Chord and reading the Vercel logs. I [reviewed every file / rewrote Z] and can explain and change any part of it.
+
+The agent itself runs entirely on Chord.

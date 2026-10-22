@@ -56,6 +56,7 @@ export class UpstreamError extends Error {
 }
 
 const TIMEOUT_MS = 8_000;
+const MAX_LIST_PAGES = 5; // x100 transactions per page
 
 function parseMetadata(raw: unknown): Record<string, unknown> {
   if (!raw) return {};
@@ -149,11 +150,11 @@ class PaystackProvider implements PaymentsProvider {
   }
 
   async listForStudent(studentId: string) {
-    const from = process.env.TERM_START || '2026-09-01';
+    const from = encodeURIComponent(process.env.TERM_START || '2026-09-01');
     const found: Txn[] = [];
     // Paystack can't filter by metadata, so we page through this term's
     // transactions and filter ourselves. Fine for a demo; see README "Limits".
-    for (let page = 1; page <= 5; page++) {
+    for (let page = 1; page <= MAX_LIST_PAGES; page++) {
       const { status, body } = await this.call(`/transaction?perPage=100&page=${page}&from=${from}`);
       if (status !== 200 || !body?.status || !Array.isArray(body?.data)) {
         throw new UpstreamError('http', `Paystack list transactions failed (HTTP ${status}): ${body?.message ?? 'no message'}`, status);
@@ -164,6 +165,13 @@ class PaystackProvider implements PaymentsProvider {
       }
       const pageCount = Number(body?.meta?.pageCount ?? 1);
       if (page >= pageCount) break;
+      // Stopping here would drop older payments and overstate the balance, so refuse instead of guessing.
+      if (page === MAX_LIST_PAGES) {
+        throw new UpstreamError(
+          'http',
+          `More than ${MAX_LIST_PAGES * 100} Paystack transactions since TERM_START; balance would be incomplete. Store payments via webhook or move TERM_START later.`,
+        );
+      }
     }
     return found.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }

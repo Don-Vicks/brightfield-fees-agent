@@ -211,7 +211,7 @@ Every response has `ok` and an `agent_hint`. Errors look like `{ "ok": false, "e
 | `PAYMENT_PROVIDER_UNAVAILABLE` | 502 | Paystack is down or timed out |
 | `CONFIG_ERROR` / `INTERNAL_ERROR` | 500 | Our side is broken: the agent should hand over to the bursar |
 
-### Automated smoke test (44 checks)
+### Automated smoke test (43 checks, 44 with TOOL_API_KEY set)
 
 ```bash
 # Against the live API: pauses at each payment link so you can pay with a test card

@@ -66,7 +66,7 @@ The descriptions are written for the AI, not for humans. Paste them as they are:
 
 ## parent_phone: who may see a child's fees
 
-\*\* Student IDs are sequential, so knowing an ID must not be enough to see a child's fees. Each student record has the parent's WhatsApp number on file. If Chord can put the **sender's WhatsApp number** into tool calls (a variable such as `{{contact.phone}}` in a query parameter or body field), map it to `parent_phone` on all three tools. The API then only answers for that parent's own children (`PARENT_NOT_VERIFIED` otherwise).
+\*\* Student IDs are sequential, so knowing an ID must not be enough to see a child's fees. Each student record has the parent's WhatsApp number on file. If Chord can put the **sender's WhatsApp number** into tool calls (a variable such as `{{contact.phone}}` in a query parameter or body field), map it to `parent_phone` on every tool. The API then only answers for that parent's own children (`PARENT_NOT_VERIFIED` otherwise).
 
 Once that works, set `REQUIRE_PARENT_PHONE=true` in Vercel so calls without a number are refused too. Add your own test number with `DEMO_PARENT_PHONES=+234...` so you can test with every student.
 
