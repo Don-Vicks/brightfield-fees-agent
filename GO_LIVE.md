@@ -8,7 +8,7 @@ The demo works end to end on Paystack test mode. This is what would have to chan
 - Chord must pass the **sender's WhatsApp number** to tool calls. The model can't be trusted to supply it, because a parent could type any number.
 - `REQUIRE_PARENT_PHONE=true` must be set, so calls without a number are refused.
 
-Until Chord provides the sender's number, this is the main blocker.
+Until Chord provides the sender's number, this is the main blocker. Checked on 2026-10-22: tool calls from Chord's test chat carry only our API key and the declared parameters, with no sender information (see FIELD_NOTES Problem 4).
 
 **Real student records.** Fees, offline payments and parent phone numbers are hard-coded in `src/lib/data.ts`. A real school needs a connection to its records system, or at least a bursar-maintained sheet, with an owner responsible for keeping parent numbers current.
 

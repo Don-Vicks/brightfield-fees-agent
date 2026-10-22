@@ -38,9 +38,31 @@ Log problems the moment they happen: paste the exact error, take a screenshot, n
 
 ---
 
+### Problem 4: Tool calls don't say who the sender is, so anyone with a student ID can see that child's fees
+
+**What happened:** Student IDs are sequential (BFA-0142, BFA-0143, …), so the API needs to know *who* is asking before it shows a child's fees. I built a parent check (`parent_phone` must match the number on file) but needed Chord to pass the sender's WhatsApp number. To see what Chord actually sends, I logged the shape of every tool call. From the test chat on 2026-10-22, 08:01 UTC:
+
+```
+[tool-call] POST /verify  headers=[x-api-key,user-agent,content-type,accept,x-invocation-id] body=[student_id]  phone_like=[none]
+[tool-call] GET /balance  headers=[x-api-key,content-type,user-agent,accept,x-invocation-id] query=[student_id] phone_like=[none]
+```
+
+Only our API key and standard HTTP headers, plus the parameters we defined. Nothing identifies the sender or the conversation. The test chat itself asks only for a name, not a phone number.
+
+**How I found the cause:** Added request-shape logging to the API (`src/middleware/inspect.ts`: field names only, phone-like values masked), sent a message in the test chat, and read the Vercel logs.
+
+**Fix / workaround:** The API side is built and off by default (`REQUIRE_PARENT_PHONE`). Without a sender number from Chord it can't be switched on, so it's a blocker in `GO_LIVE.md`. Asking the model to pass the number doesn't work as a fix: a parent could type any number.
+
+**What Chord should change:** Let tools receive trusted conversation context that the model can't change. For example, a template variable like `{{contact.phone}}` usable in headers or parameters, or a signed header such as `X-Chord-Sender` on every tool call.
+
+*Still to check: the same test over a real WhatsApp channel, in case the sender's number is only available there.*
+
+---
+
 ### What worked well
 
 - **Import OpenAPI** created all three tools from `chord/openapi.yaml` in one step, with the right method and URL for each and the `x-api-key` header auth.
+- The agent called `verify_payment` and `get_fee_balance` in parallel (~430 ms each) and, when its memory disagreed with the tools after a balance reset, it trusted the tools and corrected itself.
 - The test panel shows the response body for non-2xx statuses, so the structured errors (`code`, `message`, `agent_hint`) are visible. I didn't need the `ERRORS_AS_200` workaround (still to confirm that the agent also sees error bodies in conversation).
 
 ---
@@ -57,3 +79,5 @@ Log problems the moment they happen: paste the exact error, take a screenshot, n
 | 2026-10-21 | First full test chat (BFA-0142): balance, link, pay, verify all correct | screenshot | Done |
 | 2026-10-21 | Reset balances with `TERM_START` timestamp; updated skill + verify_payment for receipts | — | Done |
 | 2026-10-21 | Import lost parameter descriptions and timeout; fixed by hand | — | Workaround (Problem 3) |
+| 2026-10-22 08:01 UTC | Test chat tool calls carry no sender info; parent check can't be enforced | `phone_like=[none]` (Vercel logs) | Blocker (Problem 4) |
+| 2026-10-22 08:01 UTC | Old chat after balance reset: agent trusted the tools over its memory and apologised for the mismatch | screenshot | Good behaviour; use fresh chats |
