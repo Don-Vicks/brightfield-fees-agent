@@ -147,6 +147,56 @@ paths:
         '404':
           description: Reference or payment not found
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /api/payments:
+    get:
+      operationId: get_payment_history
+      summary: Payment history and receipts for a student this term
+      description: >
+        Everything paid this term for a Brightfield Academy student: the total paid at the bursary and every online payment with its date, amount and receipt_url. Call it when a parent asks what they have paid, wants their payment history, or has lost a receipt. Send receipt_url exactly as given. Bursary payments have no online receipt.
+      parameters:
+        - name: student_id
+          in: query
+          required: true
+          description: Student ID, e.g. BFA-0142
+          schema: { type: string }
+        - name: parent_phone
+          in: query
+          required: false
+          description: "The parent's WhatsApp number (the sender of this chat). Only answers for that parent's own children."
+          schema: { type: string }
+      responses:
+        '200':
+          description: Payment history
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  paid_at_bursary: { type: integer, description: naira }
+                  paid_online: { type: integer, description: naira }
+                  balance: { type: integer, description: naira }
+                  payments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        reference: { type: string }
+                        amount: { type: integer }
+                        paid_at: { type: string }
+                        receipt_url: { type: string }
+                  other_attempts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        reference: { type: string }
+                        amount: { type: integer }
+                        status: { type: string, enum: [failed, not_completed, reversed] }
+                  agent_hint: { type: string }
+        '404':
+          description: Student not found
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
   /api/handover:
     post:
       operationId: hand_over_to_bursar

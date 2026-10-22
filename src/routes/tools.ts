@@ -3,6 +3,7 @@
 //   GET|POST /api/balance        { student_id }             get_fee_balance
 //   POST|GET /api/payment-link   { student_id, amount }     create_payment_link
 //   POST|GET /api/verify         { reference | student_id } verify_payment
+//   GET|POST /api/payments       { student_id }             get_payment_history
 //   POST     /api/handover       { summary, reason, ... }   hand_over_to_bursar
 //
 // All accept parent_phone (see lib/access.ts).
@@ -302,7 +303,54 @@ tools.post('/verify', verifyPayment);
 tools.get('/verify', verifyPayment);
 
 // ---------------------------------------------------------------------------
-// TOOL 4: hand_over_to_bursar
+// TOOL 4: get_payment_history
+// Everything paid this term: bursary payments (one total from school records) and every
+// online payment with its receipt link. For "what have I paid?" and "I lost my receipt".
+// Unfinished or failed attempts are listed separately so the agent can explain them if asked.
+
+const getPaymentHistory = asyncHandler(async (req, res) => {
+  const student = requireStudent(readInput(req));
+  const provider = getProvider();
+  const txns = await provider.listForStudent(student.id);
+  const account = await getAccount(student, provider, txns);
+  const base = baseUrl(req);
+
+  const statusOf = (status: string) => (NOT_COMPLETED.has(status) ? 'not_completed' : status);
+  const payments = txns
+    .filter((t) => t.status === 'success')
+    .map((t) => ({
+      reference: t.reference,
+      amount: Math.round(t.amountKobo / 100),
+      paid_at: t.paidAt,
+      receipt_url: receiptUrl(base, t.reference),
+    }));
+  const otherAttempts = txns
+    .filter((t) => t.status !== 'success')
+    .map((t) => ({ reference: t.reference, amount: Math.round(t.amountKobo / 100), status: statusOf(t.status), created_at: t.createdAt }));
+
+  res.json({
+    ok: true,
+    student_id: student.id,
+    student_name: student.name,
+    term: SCHOOL.term,
+    total_fees: account.total_fees,
+    paid_at_bursary: account.paid_offline,
+    paid_online: account.paid_online,
+    balance: account.balance,
+    payments,
+    other_attempts: otherAttempts,
+    agent_hint:
+      payments.length === 0
+        ? `There are no online payments this term${account.paid_offline ? `; ${naira(account.paid_offline)} was paid at the bursary, and the bursar issues receipts for that` : ''}. Tell the parent briefly. If they believe they paid online, offer to check with verify_payment or pass it to the bursar.`
+        : 'List the online payments briefly (date and amount, newest first) and the bursary total if any. If the parent wants a receipt, send the receipt_url for that payment exactly as given. Bursary payments have no online receipt: the bursar issues those. Only mention other_attempts if the parent asks about a payment that is not in the list.',
+  });
+});
+
+tools.get('/payments', getPaymentHistory);
+tools.post('/payments', getPaymentHistory);
+
+// ---------------------------------------------------------------------------
+// TOOL 5: hand_over_to_bursar
 // Records a case the agent can't handle (disputes, refunds, discounts, upset parents,
 // non-fee questions) and notifies the bursar. Without this, "I'll pass it to the bursar"
 // would go nowhere.

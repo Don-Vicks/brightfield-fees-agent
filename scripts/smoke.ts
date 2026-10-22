@@ -182,6 +182,12 @@ async function main() {
   const byStudent = await call('POST', '/api/verify', { student_id: 'BFA-0142' });
   check('verify with only student_id checks the latest attempt', byStudent.json?.reference === link2.json?.reference, byStudent.json);
 
+  const history = await call('GET', '/api/payments?student_id=BFA-0142');
+  const paidRef = history.json?.payments?.find((p: any) => p.reference === ref);
+  check('payment history lists the successful payment with a receipt link', !!paidRef?.receipt_url && paidRef.amount === 150000, history.json);
+  check('payment history lists the declined attempt separately', history.json?.other_attempts?.some((a: any) => a.reference === link2.json?.reference && a.status === 'failed'), history.json);
+  check('payment history shows the bursary total', history.json?.paid_at_bursary === 200000 || mode !== 'mock', history.json);
+
   const badRef = await call('POST', '/api/verify', { reference: 'BFA0142-does-not-exist' });
   check('unknown reference -> REFERENCE_NOT_FOUND', errCode(badRef) === 'REFERENCE_NOT_FOUND', badRef.json);
 

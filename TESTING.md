@@ -63,6 +63,15 @@ Run these in Chord's simulator or test chat, or on the connected WhatsApp number
 
 **Pass:** every amount matches what the tools returned, the link is unchanged, the payment is confirmed only after `verify_payment` returns `success`, and the receipt opens.
 
+### A+. Payment history and lost receipts (after A)
+
+| # | Parent sends | Agent should call | Correct reply |
+| --- | --- | --- | --- |
+| H1 | `what have I paid so far for BFA-0142?` | `get_payment_history` | ₦200,000 at the bursary plus the ₦150,000 online payment from A4 (with its date). Balance ₦100,000 |
+| H2 | `I lost my receipt, can you send it again?` | `get_payment_history` (or reuse H1) | Sends the `receipt_url` for that payment, unchanged |
+| H3 | `send me the receipt for the bursary payment` | none | Explains bursary payments have no online receipt: the bursar issues those (and can offer a handover) |
+| H4 | `BFA-0217 payment history` (nothing paid) | `get_payment_history` | No payments yet. Offers a link, without inventing any history |
+
 ### B. Payments that don't go through
 
 | # | Parent sends | Agent should call | Correct reply |
@@ -202,7 +211,7 @@ Every response has `ok` and an `agent_hint`. Errors look like `{ "ok": false, "e
 | `PAYMENT_PROVIDER_UNAVAILABLE` | 502 | Paystack is down or timed out |
 | `CONFIG_ERROR` / `INTERNAL_ERROR` | 500 | Our side is broken: the agent should hand over to the bursar |
 
-### Automated smoke test (41 checks)
+### Automated smoke test (44 checks)
 
 ```bash
 # Against the live API: pauses at each payment link so you can pay with a test card
@@ -232,6 +241,7 @@ Copy for each test run.
 | Test | Date | Pass/Fail | Notes (what the agent said, screenshots) |
 | --- | --- | --- | --- |
 | A1–A7 | | | |
+| H1–H4 | | | |
 | B1–B4 | | | |
 | C1–C5 | | | |
 | D1–D4 | | | |

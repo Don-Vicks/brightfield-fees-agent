@@ -1,6 +1,6 @@
 # Chord custom tools: what to enter
 
-Four tools, all calling the deployed API at https://brightfield-fees-agent.vercel.app. Replace `YOUR_TOOL_API_KEY` with the `TOOL_API_KEY` set in Vercel (kept out of this repo on purpose).
+Five tools, all calling the deployed API at https://brightfield-fees-agent.vercel.app. Replace `YOUR_TOOL_API_KEY` with the `TOOL_API_KEY` set in Vercel (kept out of this repo on purpose).
 
 I haven't seen Chord's tool form, so the field names below are generic. Map them onto whatever Chord asks for. Anything in Chord that doesn't map cleanly is a field note.
 
@@ -74,7 +74,23 @@ If Chord can't pass the sender's number, leave `REQUIRE_PARENT_PHONE` off. It's 
 
 ---
 
-## 4. hand_over_to_bursar
+## 4. get_payment_history
+
+- **Method / URL:** `GET https://brightfield-fees-agent.vercel.app/api/payments`
+- **Description:**
+  > Everything paid this term for a Brightfield Academy student: the total paid at the bursary and every online payment with its date, amount and receipt_url. Call it when a parent asks what they have paid, wants their payment history, or has lost a receipt. Send receipt_url exactly as given. Bursary payments have no online receipt.
+- **Parameters:**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| student_id | string | yes | The child's student ID, e.g. BFA-0142 |
+| parent_phone | string | no** | The parent's WhatsApp number (the sender of this chat), e.g. +2348035550142 |
+
+- **Sends as:** query string. POST with a JSON body also works.
+
+---
+
+## 5. hand_over_to_bursar
 
 - **Method / URL:** `POST https://brightfield-fees-agent.vercel.app/api/handover`
 - **Description:**
