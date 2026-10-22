@@ -1,8 +1,11 @@
-// The three tools the Chord agent calls. All require the API key.
+// The tools the Chord agent calls. All require the API key.
 //
-//   GET|POST /api/balance        { student_id }           get_fee_balance
-//   POST|GET /api/payment-link   { student_id, amount }   create_payment_link
+//   GET|POST /api/balance        { student_id }             get_fee_balance
+//   POST|GET /api/payment-link   { student_id, amount }     create_payment_link
 //   POST|GET /api/verify         { reference | student_id } verify_payment
+//   POST     /api/handover       { summary, reason, ... }   hand_over_to_bursar
+//
+// All accept parent_phone (see lib/access.ts).
 //
 // Errors are thrown as ToolError (or UpstreamError from Paystack) and formatted by the error middleware.
 
@@ -297,3 +300,75 @@ const verifyPayment = asyncHandler(async (req, res) => {
 
 tools.post('/verify', verifyPayment);
 tools.get('/verify', verifyPayment);
+
+// ---------------------------------------------------------------------------
+// TOOL 4: hand_over_to_bursar
+// Records a case the agent can't handle (disputes, refunds, discounts, upset parents,
+// non-fee questions) and notifies the bursar. Without this, "I'll pass it to the bursar"
+// would go nowhere.
+//
+// Delivery: always logged as a [handover] line (Vercel logs). If BURSAR_WEBHOOK_URL is set,
+// also POSTed there: Slack incoming webhooks show the `text`, anything else gets the JSON.
+// Works without a parent check on purpose: a parent whose number changed must still reach a human.
+
+const HANDOVER_REASONS = new Set(['dispute', 'refund', 'discount', 'deadline', 'missing_payment', 'reversed_payment', 'sensitive', 'not_fees', 'system_down', 'other']);
+
+const handOver = asyncHandler(async (req, res) => {
+  const input = readInput(req);
+  const summary = typeof input.summary === 'string' ? input.summary.trim() : '';
+  if (!summary) {
+    throw fail(
+      400,
+      'MISSING_SUMMARY',
+      'summary is required.',
+      'Call hand_over_to_bursar again with a one or two sentence summary of what the parent needs.',
+    );
+  }
+
+  const reason = typeof input.reason === 'string' && HANDOVER_REASONS.has(input.reason) ? input.reason : 'other';
+  const student = input.student_id ? findStudent(input.student_id) : undefined;
+  const handover = {
+    handover_id: `HO-${Date.now().toString(36).toUpperCase()}-${randomBytes(2).toString('hex')}`,
+    reason,
+    student_id: student?.id ?? (input.student_id ? String(input.student_id) : null),
+    parent_phone: input.parent_phone ? String(input.parent_phone) : null,
+    reference: input.reference ? String(input.reference) : null,
+    summary: summary.slice(0, 1000),
+    created_at: new Date().toISOString(),
+  };
+  console.log(`[handover] ${JSON.stringify(handover)}`);
+
+  let delivered = 'log';
+  const webhook = process.env.BURSAR_WEBHOOK_URL;
+  if (webhook) {
+    try {
+      const r = await fetch(webhook, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          text:
+            `New fees handover ${handover.handover_id} (${reason})\n` +
+            `Student: ${handover.student_id ?? 'not given'}${student ? ` (${student.name})` : ''}\n` +
+            `Parent: ${handover.parent_phone ?? 'unknown number'}\n` +
+            (handover.reference ? `Payment ref: ${handover.reference}\n` : '') +
+            `Summary: ${handover.summary}`,
+          ...handover,
+        }),
+        signal: AbortSignal.timeout(5000),
+      });
+      delivered = r.ok ? 'webhook' : 'log';
+      if (!r.ok) console.error(`[handover] webhook returned HTTP ${r.status}`);
+    } catch (err) {
+      console.error('[handover] webhook failed', err);
+    }
+  }
+
+  res.json({
+    ok: true,
+    handover_id: handover.handover_id,
+    delivered,
+    agent_hint: `Tell the parent you've passed this to ${SCHOOL.bursar}, who will reach out during school hours (Mon–Fri, 8am–4pm). Give them the handover ID ${handover.handover_id} in case they need to follow up. Do not promise any outcome.`,
+  });
+});
+
+tools.post('/handover', handOver);

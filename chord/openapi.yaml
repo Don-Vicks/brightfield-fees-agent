@@ -147,3 +147,37 @@ paths:
         '404':
           description: Reference or payment not found
           content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }
+  /api/handover:
+    post:
+      operationId: hand_over_to_bursar
+      summary: Pass a case to the school bursar (a human)
+      description: >
+        Pass a case to the school bursar (a human) when the parent needs something you can't do: a disputed balance or missing payment, a refund or double charge, a discount, scholarship or deadline extension, a reversed or unclear payment, an upset parent or sensitive situation, a non-fee question, or the payment system being down. Returns a handover_id to give the parent. Never promise an outcome.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [summary]
+              properties:
+                summary: { type: string, description: 'One or two sentences for the bursar: what the parent needs and any useful detail' }
+                reason: { type: string, enum: [dispute, refund, discount, deadline, missing_payment, reversed_payment, sensitive, not_fees, system_down, other] }
+                student_id: { type: string, description: "The child's student ID, if known" }
+                parent_phone: { type: string, description: "The parent's WhatsApp number (the sender of this chat)" }
+                reference: { type: string, description: 'A payment reference involved, if any' }
+      responses:
+        '200':
+          description: Handover recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ok: { type: boolean }
+                  handover_id: { type: string }
+                  delivered: { type: string, enum: [webhook, log] }
+                  agent_hint: { type: string }
+        '400':
+          description: Missing summary
+          content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } }

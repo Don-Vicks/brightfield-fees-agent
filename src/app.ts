@@ -2,6 +2,7 @@
 
 import express from 'express';
 import { errorHandler, notFound } from './middleware/errors';
+import { inspectToolCall } from './middleware/inspect';
 import { pages } from './routes/pages';
 import { tools } from './routes/tools';
 
@@ -26,8 +27,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/api', pages); // public: health, payment-complete, mock-checkout
-app.use('/api', tools); // API key required
+app.use('/api', pages); // public: health, payment-complete, mock-checkout, receipts
+app.use('/api', inspectToolCall, tools); // API key required
 
 app.use(notFound);
 app.use(errorHandler);

@@ -2,31 +2,46 @@
 
 A WhatsApp agent, built on Chord, that lets parents at a (made-up) Lagos private school check their child's fee balance, pay all or part of it through Paystack, and get instant confirmation. No bursar is needed for routine fee questions.
 
+| | |
+| --- | --- |
+| **Live API** | https://brightfield-fees-agent.vercel.app/api/health |
+| **Demo recording** | _link to be added_ |
+| **Test plan** | [TESTING.md](TESTING.md) |
+| **Go-live note** | [GO_LIVE.md](GO_LIVE.md) |
+| **Field notes** | [FIELD_NOTES.md](FIELD_NOTES.md) |
+
 This repo holds the agent's **skill** and the **tool API** it calls. The agent itself lives on Chord.
 
 ```
-Parent (WhatsApp) ──► Chord agent ──► this API ──► Paystack (test mode)
-                       uses skill      3 tools      makes links, verifies
+                       ┌──────────────────────────── Chord ───┐
+Parent ── WhatsApp ──► │ teammate: skill (rules, tone)        │
+                       │   └─ calls 4 tools (x-api-key) ──────┼──► this API (Express on Vercel)
+                       └──────────────────────────────────────┘      │
+                                                                     ├─► Paystack (test mode): links, verify, ledger
+                                                                     ├─► school records (src/lib/data.ts)
+                                                                     └─► bursar (handover log / webhook)
+Parent's browser ──► Paystack checkout ──► /api/payment-complete      receipts: /api/receipt/:ref
 ```
 
-## The three tools
+## The four tools
 
 | Tool | Endpoint | What it does |
 | --- | --- | --- |
 | `get_fee_balance` | `GET /api/balance?student_id=` | Total fees, paid, balance, minimum installment, breakdown |
 | `create_payment_link` | `POST /api/payment-link` `{student_id, amount}` | Checks installment rules, creates a Paystack checkout link |
 | `verify_payment` | `POST /api/verify` `{reference}` or `{student_id}` | Asks Paystack if the payment went through, returns the new balance and, on success, a receipt (page with Download button + PNG) |
+| `hand_over_to_bursar` | `POST /api/handover` `{summary, reason, ...}` | Records a case for the bursar and notifies them (log, or a webhook such as Slack) |
+
+All four accept `parent_phone`, so the API only answers for a parent's own children (see Design decisions).
 
 Every response includes `agent_hint`: one line telling the agent what the result means and what to say next. Errors share one shape, `{ ok:false, error:{ code, message, agent_hint } }`.
-
-**Testing:** see [TESTING.md](TESTING.md) for the full test plan: conversation scenarios, test cards, receipt checks, API calls and error codes.
 
 ## Run it locally (2 minutes, no keys needed)
 
 ```bash
 npm install
 npm run dev        # http://localhost:3000/api/health
-npm run smoke      # in a second terminal: runs 39 checks end to end
+npm run smoke      # in a second terminal: runs 41 checks end to end
 ```
 
 With no Paystack key it runs in **mock mode**. Payment links open a fake checkout page where you click Pay or Decline. Copy `.env.example` to `.env` to configure it.
@@ -47,7 +62,7 @@ With no Paystack key it runs in **mock mode**. Payment links open a fake checkou
 ## Connect to Chord
 
 - **Skill:** paste `chord/skill-brightfield-fees.md` into a new skill on the agent.
-- **Tools:** add the three tools as described in `chord/tools.md`, or import `chord/openapi.yaml` if Chord supports it.
+- **Tools:** add the four tools as described in `chord/tools.md`, or import `chord/openapi.yaml` if Chord supports it.
 - Test in the WhatsApp simulator with student ID **BFA-0142** (balance ₦250,000).
 
 Test students: `BFA-0142` (₦250k owing), `BFA-0217` (₦520k owing, nothing paid), `BFA-0088` (fully paid), `BFA-0305` (₦60k left, below the minimum installment, so it must be paid in full), `BFA-0151` (₦280k owing).
@@ -76,6 +91,8 @@ See `.env.example`. Notable switches:
 - `ERRORS_AS_200=true`: return errors as HTTP 200 if a tool platform hides non-2xx bodies from the agent.
 - `ALLOW_KEY_IN_QUERY=true`: accept `?key=` when the platform can't send headers.
 - `REQUIRE_PARENT_PHONE=true`: refuse tool calls without the sender's number. `DEMO_PARENT_PHONES` adds tester numbers that count as every student's parent.
+- `BURSAR_WEBHOOK_URL`: where handovers are posted (a Slack incoming webhook works as-is).
+- `LOG_TOOL_REQUESTS=false`: stop logging the shape of tool calls (field names and masked phone numbers).
 - `TERM_START`: only Paystack payments from this date/time count. Set it to the current time to reset all test balances.
 
 ## Project layout

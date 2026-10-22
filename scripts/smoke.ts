@@ -196,6 +196,13 @@ async function main() {
     check('student with no online payments -> NO_PAYMENT_FOUND', errCode(none) === 'NO_PAYMENT_FOUND', none.json);
   }
 
+  // ---------------------------------------------------------------- handover
+  console.log('\nBursar handover');
+  const ho = await call('POST', '/api/handover', { summary: 'Parent says a bank transfer is missing.', reason: 'missing_payment', student_id: 'BFA-0142' });
+  check('handover recorded with an ID', ho.status === 200 && /^HO-/.test(ho.json?.handover_id ?? ''), ho.json);
+  const hoEmpty = await call('POST', '/api/handover', { reason: 'refund' });
+  check('handover without summary -> MISSING_SUMMARY', errCode(hoEmpty) === 'MISSING_SUMMARY', hoEmpty.json);
+
   // ---------------------------------------------------------------- pay off
   console.log('\nPaying off the balance');
   const rest = startBalance - 150000;

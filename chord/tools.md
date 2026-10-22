@@ -1,6 +1,6 @@
 # Chord custom tools: what to enter
 
-Three tools, all calling the deployed API at https://brightfield-fees-agent.vercel.app. Replace `YOUR_TOOL_API_KEY` with the `TOOL_API_KEY` set in Vercel (kept out of this repo on purpose).
+Four tools, all calling the deployed API at https://brightfield-fees-agent.vercel.app. Replace `YOUR_TOOL_API_KEY` with the `TOOL_API_KEY` set in Vercel (kept out of this repo on purpose).
 
 I haven't seen Chord's tool form, so the field names below are generic. Map them onto whatever Chord asks for. Anything in Chord that doesn't map cleanly is a field note.
 
@@ -74,7 +74,26 @@ If Chord can't pass the sender's number, leave `REQUIRE_PARENT_PHONE` off. It's 
 
 ---
 
-## Response format (all three tools)
+## 4. hand_over_to_bursar
+
+- **Method / URL:** `POST https://brightfield-fees-agent.vercel.app/api/handover`
+- **Description:**
+  > Pass a case to the school bursar (a human) when the parent needs something you can't do: a disputed balance or missing payment, a refund or double charge, a discount, scholarship or deadline extension, a reversed or unclear payment, an upset parent or sensitive situation, a non-fee question, or the payment system being down. Returns a handover_id to give the parent. Never promise an outcome.
+- **Parameters (JSON body):**
+
+| Name | Type | Required | Description |
+| --- | --- | --- | --- |
+| summary | string | yes | One or two sentences for the bursar: what the parent needs and any useful detail |
+| reason | string | no | One of: dispute, refund, discount, deadline, missing_payment, reversed_payment, sensitive, not_fees, system_down, other |
+| student_id | string | no | The child's student ID, if known |
+| parent_phone | string | no | The parent's WhatsApp number (the sender of this chat) |
+| reference | string | no | A payment reference involved, if any |
+
+The handover is logged (`[handover]` in Vercel logs) and, if `BURSAR_WEBHOOK_URL` is set in Vercel, posted there (a Slack incoming webhook works as-is).
+
+---
+
+## Response format (all tools)
 
 Success:
 

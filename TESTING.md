@@ -93,7 +93,7 @@ Run these in Chord's simulator or test chat, or on the connected WhatsApp number
 
 ### E. Handovers to the bursar
 
-The agent should say it's passing the case to the bursar, who will reach out Mon–Fri 8am–4pm, and give a short summary (student ID, the request, any reference).
+The agent should **call `hand_over_to_bursar`**, then tell the parent the bursar will reach out Mon–Fri 8am–4pm and give them the `handover_id`. Check the Vercel logs for the `[handover]` line (or the Slack channel, if `BURSAR_WEBHOOK_URL` is set). Saying "I'll pass it on" without calling the tool is a fail.
 
 | # | Parent sends | Correct reply |
 | --- | --- | --- |
@@ -196,12 +196,13 @@ Every response has `ok` and an `agent_hint`. Errors look like `{ "ok": false, "e
 | `REFERENCE_NOT_FOUND` | 404 | Paystack doesn't know the reference |
 | `REFERENCE_STUDENT_MISMATCH` | 409 | The reference belongs to a different student |
 | `NO_PAYMENT_FOUND` | 404 | No online payment attempts for the student this term |
+| `MISSING_SUMMARY` | 400 | `hand_over_to_bursar` called without a summary |
 | `PARENT_NOT_VERIFIED` | 403 | `parent_phone` isn't on file for that student |
 | `PARENT_PHONE_REQUIRED` | 400 | `REQUIRE_PARENT_PHONE=true` and no `parent_phone` sent |
 | `PAYMENT_PROVIDER_UNAVAILABLE` | 502 | Paystack is down or timed out |
 | `CONFIG_ERROR` / `INTERNAL_ERROR` | 500 | Our side is broken: the agent should hand over to the bursar |
 
-### Automated smoke test (39 checks)
+### Automated smoke test (41 checks)
 
 ```bash
 # Against the live API: pauses at each payment link so you can pay with a test card
