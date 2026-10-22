@@ -9,7 +9,7 @@ A WhatsApp agent on Chord for a made-up Lagos private school. Parents check thei
 | | |
 | --- | --- |
 | **Live API** | https://brightfield-fees-agent.vercel.app/api/health |
-| **Demo recording** | _link to be added_ |
+| **Demo recording** | [3-minute narrated demo (Google Drive)](https://drive.google.com/file/d/1U0pP1tUMv3whPjA6R_yjTDYdceB-I8-f/view) |
 | **Test plan** | [TESTING.md](TESTING.md) |
 | **Go-live note** | [GO_LIVE.md](GO_LIVE.md) |
 | **Field notes** | [FIELD_NOTES.md](FIELD_NOTES.md) |
