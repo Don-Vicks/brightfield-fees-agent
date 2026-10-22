@@ -8,17 +8,15 @@ Brightfield Academy fees agent on Chord. These are the three problems that cost 
 
 ### What happened
 
-Student IDs are sequential (BFA-0142, BFA-0143 and so on), so knowing or guessing an ID should not be enough to see a child's fees. I built a check for this: every student record holds the parent's phone number, and the API only answers when the caller's number matches. That only works if Chord passes the sender's number with each tool call, and it does not.
+Student IDs follow a simple numbered pattern (BFA-0142, BFA-0143 and so on), so knowing or guessing an ID should not be enough to see a child's fees. I built a check for this: every student record holds the parent's phone number, and the API only answers when the caller's number matches. That only works if Chord passes the sender's number with each tool call, and it does not.
 
 ### How I found the cause
 
 I added logging to the API that records which headers and fields arrive with each tool call (names only, with any phone-like value masked). Then I sent a message in the simulator and read the Vercel logs. This is what arrived on 22 October at 08:01 UTC:
 
 ```
-POST /verify   headers=[x-api-key, user-agent, content-type, accept, x-invocation-id]
-               body=[student_id]   phone_like=[none]
-GET  /balance  headers=[x-api-key, content-type, user-agent, accept, x-invocation-id]
-               query=[student_id]  phone_like=[none]
+[tool-call] POST /verify  headers=[x-api-key,user-agent,content-type,accept,x-invocation-id] body=[student_id]  phone_like=[none]
+[tool-call] GET /balance  headers=[x-api-key,content-type,user-agent,accept,x-invocation-id] query=[student_id] phone_like=[none]
 ```
 
 Only my API key, standard HTTP headers and the parameters I defined. Nothing identifies the sender or the conversation.
@@ -39,14 +37,14 @@ Give tools trusted context that the model cannot edit, for example a `{{contact.
 
 ### What happened
 
-Import created every tool with the right method, URL and `x-api-key` auth, but two things were missing:
+Import created the tools with the right method, URL and `x-api-key` auth, but two things were missing:
 
 - The body schemas kept only the field types. The descriptions were gone, such as "amount in naira, not kobo", which tell the model how to fill each field. The timeout field was blank.
 - Clicking Test on `create_payment_link` returned `400 MISSING_STUDENT_ID`. The test panel had sent an empty body, even though the spec has the schema and examples.
 
 ### How I found the cause
 
-The test panel shows the response body for errors, so I could read my API's own error: `{"ok":false,"error":{"code":"MISSING_STUDENT_ID"}}`. Then I opened Edit API connection on `verify_payment` and compared its schema with my spec file.
+The test panel shows the response body for errors, so I could read my API's own error: `{"ok":false,"error":{"code":"MISSING_STUDENT_ID",...}}`. Then I opened Edit API connection on `verify_payment` and compared its schema with my spec file.
 
 ### Workaround
 
@@ -78,8 +76,8 @@ A short guided setup (name, then skill, then tools with Import OpenAPI, then cha
 
 ## What worked well
 
-- Import OpenAPI created every tool in one step, with header auth.
-- The agent called `verify_payment` and `get_fee_balance` in parallel (about 430 ms each). When its memory disagreed with the tools after I reset the balances, it trusted the tools and corrected itself.
+- Import OpenAPI created my first three tools in one step, with header auth.
+- The agent called `verify_payment` and `get_fee_balance` in parallel (about 430 ms each in the Vercel logs). When its memory disagreed with the tools after I reset the balances, it trusted the tools and corrected itself.
 - My structured errors (code, message and a hint for the agent) were readable in the test panel, so I did not need a workaround for error bodies.
 
 ## Test log

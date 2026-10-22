@@ -4,7 +4,7 @@
 
 **Problem.** Many Lagos private schools let parents pay fees in installments, often two or three a term, and each payment is a bank transfer the bursar has to match to a child and confirm before issuing a receipt. For an example school of 600 students, that's roughly 1,200 to 1,800 payments a term to check by hand. Brightfield Academy is made up, and putting this on WhatsApp is my design choice rather than how schools work today: my bet is that parents would rather check a balance, pay through a Paystack link that enforces the installment rules, and get a receipt in a chat app they already use than wait on the bursary, which then only handles the exceptions. I deliberately left out reminders (the agent can't message first), several children per chat, and anything involving discretion such as discounts or refunds, which go to the bursar.
 
-A WhatsApp agent, built on Chord, that lets parents at a (made-up) Lagos private school check their child's fee balance, pay all or part of it through Paystack, and get instant confirmation. No bursar is needed for routine fee questions.
+A WhatsApp agent on Chord for a made-up Lagos private school. Parents check their child's fee balance, pay all or part of it through a Paystack test link, and get a confirmation and a receipt once Paystack has the payment. Anything that needs a person goes to the bursar with a case ID.
 
 | | |
 | --- | --- |
@@ -104,6 +104,6 @@ See `.env.example`. Notable switches:
 
 I built this with Claude Code as a pair programmer, and every commit says so (co-authored). Claude wrote most of the code: the Express tool API, the Paystack client, the receipts and the smoke test. It also wrote first drafts of the skill, the OpenAPI spec and the docs.
 
-My part: I decided what the agent should and shouldn't do and which rules it enforces. I set up the teammate, skill and tools in Chord by hand, deployed to Vercel with Paystack in test mode, and ran the test chats, paying with test cards. I found the problems in the field notes by testing in Chord and reading the Vercel logs. When the agent got things wrong in testing (handing over instead of sending a link, raw `**` in WhatsApp, an extra confirmation step), I traced the cause and we changed the skill.
+My part: I decided what the agent should and shouldn't do and which rules it enforces. I set up the teammate, skill and tools in Chord by hand, deployed to Vercel with Paystack in test mode, and ran the test chats, paying with test cards. I found the problems in the field notes by testing in Chord and reading the Vercel logs. When the agent got things wrong in testing (handing over instead of sending a link, raw asterisks in WhatsApp, an extra confirmation step), I traced the cause and we changed the skill.
 
 The agent itself runs entirely on Chord.

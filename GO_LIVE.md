@@ -8,7 +8,7 @@ Parents message the school's WhatsApp number with their child's student ID. The 
 
 ## What it does not do
 
-It never agrees to discounts, lower installments or deadline changes. It cannot message parents first, so there are no payment reminders. It handles one child per conversation.
+It never agrees to discounts, lower installments or deadline changes. It cannot message parents first, so there are no payment reminders. It deals with one child at a time: a parent with two children gives each child's ID in turn.
 
 ## Before real parents use it
 
@@ -19,7 +19,7 @@ It never agrees to discounts, lower installments or deadline changes. It cannot 
 
 ## When something goes wrong
 
-A failed or declined payment is never confirmed: the parent is told no money was taken and is offered a new link. If Paystack is down, the assistant says so and passes the case to the bursar. Every handover is logged and can be posted to Slack. Before launch, the school picks one place the bursar checks, because parents are told to expect a reply within school hours (Mon–Fri, 8am–4pm). Error alerts to a named technical contact are not set up yet and are needed before launch.
+A failed or declined payment is never confirmed: the parent is told no money was taken and is offered a new link. If Paystack is down, the assistant says the payment system is temporarily unavailable, asks the parent to try again shortly, and never guesses whether a payment went through. A parent who has already paid is offered a handover to the bursar. Every handover is logged and can be posted to Slack. Before launch, the school picks one place the bursar checks, because parents are told to expect a reply within school hours (Mon–Fri, 8am–4pm). Error alerts to a named technical contact are not set up yet and are needed before launch.
 
 ## Rollout
 
