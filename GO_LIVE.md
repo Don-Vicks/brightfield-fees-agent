@@ -1,5 +1,3 @@
-<!-- DRAFT: rewrite in your own words before submitting. Keep it to half a page. -->
-
 # Go-live note for Brightfield Academy
 
 **What it does.** Parents message the school's WhatsApp number with their child's student ID. The assistant tells them the balance, sends a Paystack link for the full amount or an installment of at least ₦100,000, confirms the payment once Paystack has it, and sends a receipt. Anything else (disputes, refunds, discounts, upset parents) goes to the bursar with a case ID.

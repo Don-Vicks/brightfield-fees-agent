@@ -2,8 +2,7 @@
 
 **Role:** Forward-deployed Engineering
 
-<!-- DRAFT: rewrite in your own words. Check the numbers are ones you can defend live. -->
-**Problem.** Private schools in Lagos run fee collection on WhatsApp: parents message the bursar to ask what they owe, pay by transfer in installments, then send a screenshot and wait for someone to confirm it and issue a receipt. At a 600-student school paying in about three installments a term, that's roughly 1,800 confirmations a term plus the balance questions, all handled by hand by one bursar, with mistakes and slow replies in the busiest weeks. This agent answers the balance, sends a Paystack link that enforces the school's installment rules, confirms payment with Paystack itself rather than a screenshot, and issues a receipt, so the bursar only sees the exceptions. I deliberately left out reminders (the agent can't message first), several children per chat, and anything involving discretion such as discounts or refunds, which go to the bursar.
+**Problem.** Private schools in Lagos collect fees over WhatsApp: parents message the bursar to ask what they owe, pay by transfer in installments, then send a screenshot and wait for someone to confirm it and issue a receipt. Take a school of 600 students where most parents pay in three installments: that's about 1,800 payments a bursar has to match and confirm by hand every term, on top of the "how much do I owe?" messages, and it all peaks in the same few weeks. This agent answers the balance, sends a Paystack link that enforces the school's installment rules, confirms payment with Paystack itself rather than a screenshot, and issues a receipt, so the bursar only sees the exceptions. I deliberately left out reminders (the agent can't message first), several children per chat, and anything involving discretion such as discounts or refunds, which go to the bursar.
 
 A WhatsApp agent, built on Chord, that lets parents at a (made-up) Lagos private school check their child's fee balance, pay all or part of it through Paystack, and get instant confirmation. No bursar is needed for routine fee questions.
 
@@ -117,9 +116,8 @@ FIELD_NOTES.md  problems hit while building and deploying
 
 ## How I used AI tools
 
-<!-- DRAFT: fill in the [brackets] and make it true. Every commit in this repo is co-authored by Claude, so don't undersell its part. -->
-I used Claude Code throughout, as a pair programmer. It wrote most of the code in this repo (the Express tool API, Paystack client, receipts, smoke test) and first drafts of the skill, OpenAPI spec and docs; every commit is marked co-authored.
+I built this with Claude Code as a pair programmer, and every commit says so (co-authored). Claude wrote most of the code: the Express tool API, the Paystack client, the receipts and the smoke test. It also wrote first drafts of the skill, the OpenAPI spec and the docs.
 
-What I did: chose the problem and the rules the agent enforces; [decided X / pushed back on Y]; set up the teammate, skill and tools in Chord by hand; deployed to Vercel and configured Paystack test mode; ran the test chats and paid with test cards; and found the problems in the field notes by testing in Chord and reading the Vercel logs. I [reviewed every file / rewrote Z] and can explain and change any part of it.
+My part was deciding what the agent should and shouldn't do, and the rules it enforces; setting up the teammate, skill and tools in Chord by hand; deploying to Vercel with Paystack in test mode; running the test chats and paying with test cards; and finding the problems in the field notes by testing in Chord and reading the Vercel logs. When the agent misbehaved in testing (handing over instead of sending a link, raw `**` in WhatsApp, an extra confirmation step), I traced it and we changed the skill.
 
 The agent itself runs entirely on Chord.

@@ -1,8 +1,6 @@
-<!-- DRAFT: reordered and trimmed to the three strongest problems. Wording is mostly yours; rewrite anything that doesn't sound like you. -->
-
 # Deployment field notes
 
-Three problems, most important first. Each has what happened, how I found the cause, the workaround, and what I'd change in Chord.
+The three problems that cost me the most time, most important first.
 
 ### Problem 1: Tool calls don't say who the sender is, so anyone with a student ID can see that child's fees
 
